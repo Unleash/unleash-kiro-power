@@ -1,0 +1,13 @@
+{
+  "enabled": false,
+  "name": "Feature flag audit",
+  "description": "Manual-trigger audit of all feature flags in the default project. Identifies cleanup candidates and stale flags. Enable when you want the trigger button to appear in the Hooks panel.",
+  "version": "1",
+  "when": {
+    "type": "userTriggered"
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Run a feature flag audit using the Unleash MCP server. Steps: (1) List all flags in the default project. (2) For each flag, call get_flag_state to retrieve rollout state and metadata. (3) Identify cleanup candidates using the thresholds in steering/cleanup-cadence.md: flags at 100% rollout for 14+ days, flags unmodified for 90+ days, and flags whose feature has fully launched. (4) Skip flags of type operational, kill-switch, or permission (these are long-lived by design). (5) Produce a prioritized cleanup report sorted by (days at 100%) × (rollout percentage). For each candidate, include the flag name, current state, suggested action (cleanup_flag vs. annual review), and which files reference it. Do not call cleanup_flag automatically — the report is for the user to triage."
+  }
+}
