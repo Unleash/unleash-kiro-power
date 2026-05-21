@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "unleash": {
+      "url": "https://your-instance.getunleash.io/api/admin/mcp",
+      "headers": {
+        "Authorization": "Bearer ${UNLEASH_PAT}"
+      },
+      "autoApprove": ["get_flag_state", "detect_flag", "evaluate_change"],
+      "disabledTools": []
+    }
+  }
+}

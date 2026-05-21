@@ -1,0 +1,14 @@
+{
+  "enabled": false,
+  "name": "Evaluate high-risk changes for feature flags",
+  "description": "On file save in a high-risk directory, asks Kiro to evaluate whether the change needs a feature flag and offer to create one. Disabled by default — enable after editing filePattern to match your team's high-risk paths.",
+  "version": "1",
+  "when": {
+    "type": "fileSave",
+    "filePattern": "src/payments/**/*.ts"
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "The file $FILE_PATH was just saved with changes in a high-risk domain. Use the Unleash MCP server's evaluate_change tool to determine if these changes should be behind a feature flag. If the recommendation is yes: (1) Call detect_flag to check for an existing matching flag before suggesting a new one. (2) If a new flag is needed, propose a name following the team's naming convention from steering/feature-flag-conventions.md and steering/high-risk-domains.md. (3) Offer to call create_flag and wrap_change to scaffold the flag and guard code. Do not auto-create — wait for user confirmation."
+  }
+}
