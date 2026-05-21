@@ -50,17 +50,19 @@ Rules:
 
 ## 3. Flag types
 
-<!-- CUSTOMIZE: trim or extend this list based on which types your team actually uses -->
+<!-- CUSTOMIZE: adjust the expected lifetimes below to match your team's internal guidelines. The defaults shown are Unleash's out-of-the-box lifetimes (set per type in the Unleash admin UI under Configure → Feature flag types). -->
 
-Pick the type that matches the flag's purpose. The MCP server's `create_flag` tool will validate against these.
+Pick the type that matches the flag's purpose. The MCP server's `create_flag` tool validates against these five types.
 
-| Type | Purpose | Lifecycle |
+| Type | Purpose | Default expected lifetime |
 |---|---|---|
-| `release` | Gradual feature rollouts | Temporary — remove after 100% rollout stabilizes |
-| `experiment` | A/B tests, multivariate experiments | Temporary — remove after the experiment concludes |
-| `operational` | System behavior toggles (caching, batching, rate limits) | Long-lived |
-| `kill-switch` | Emergency shutdown for external integrations or high-risk paths | Long-lived |
-| `permission` | Role- or tier-based access (paid features, beta access) | Long-lived |
+| `release` | Gradual feature rollouts | **40 days** — temporary; remove after rollout stabilizes |
+| `experiment` | A/B tests, multivariate experiments | **40 days** — temporary; remove after the experiment concludes |
+| `operational` | Short-term system behavior toggles (caching, batching, rate limits) | **7 days** — short-lived; replace with config or remove after the operational change ships |
+| `kill-switch` | Emergency shutdown for external integrations or high-risk paths | **Permanent** — no expected lifetime; meant to live indefinitely |
+| `permission` | Role- or tier-based access (paid features, beta access) | **Permanent** — no expected lifetime; ties to user attributes, not a rollout |
+
+Lifetimes come from Unleash's product defaults and are used by Unleash to mark flags "potentially stale" once they exceed the threshold for their type. Teams customize these per project in the Unleash admin UI.
 
 When in doubt, default to `release` for new features and `kill-switch` for external-dependency integrations.
 

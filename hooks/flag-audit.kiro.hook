@@ -1,13 +1,13 @@
 {
   "enabled": false,
   "name": "Feature flag audit",
-  "description": "Manual-trigger audit of all feature flags in the default project. Identifies cleanup candidates and stale flags. Enable when you want the trigger button to appear in the Hooks panel.",
+  "description": "Manual-trigger audit of all feature flags in the default project. Identifies cleanup candidates using metadata returned by the Unleash MCP server. Enable when you want the trigger button to appear in the Hooks panel.",
   "version": "1",
   "when": {
     "type": "userTriggered"
   },
   "then": {
     "type": "askAgent",
-    "prompt": "Run a feature flag audit using the Unleash MCP server. Steps: (1) List all flags in the default project. (2) For each flag, call get_flag_state to retrieve rollout state and metadata. (3) Identify cleanup candidates using the thresholds in steering/cleanup-cadence.md: flags at 100% rollout for 14+ days, flags unmodified for 90+ days, and flags whose feature has fully launched. (4) Skip flags of type operational, kill-switch, or permission (these are long-lived by design). (5) Produce a prioritized cleanup report sorted by (days at 100%) × (rollout percentage). For each candidate, include the flag name, current state, suggested action (cleanup_flag vs. annual review), and which files reference it. Do not call cleanup_flag automatically — the report is for the user to triage."
+    "prompt": "Run a feature flag audit using the Unleash MCP server. The audit uses only data actually returned by get_flag_state — Unleash's stale marker, createdAt, environments[].lastSeenAt, and type — and does NOT depend on rollout-strategy history (which is not exposed by the MCP server). Steps: (1) List all flags in the default project (or whatever project the user specifies). (2) For each flag, call get_flag_state to retrieve the FeatureDetails (name, type, stale, archived, createdAt, environments[]). (3) Skip flags where type is kill-switch or permission — these are permanent by Unleash's defaults. (4) For each remaining flag, evaluate these signals in order: (a) stale === true → Unleash already flagged it, include in report; (b) archived === true → already archived in Unleash but code references may remain, include for code cleanup; (c) all environments[].lastSeenAt older than 30 days where the flag is enabled → no SDK has hit it, include; (d) age(createdAt) > expected lifetime for type (release 40d, experiment 40d, operational 7d — or whatever the team customized in steering/cleanup-cadence.md) → overdue, include. (5) Produce a prioritized cleanup report sorted by: stale flags first, then by oldest lastSeenAt across all enabled environments, then by (age - expected lifetime). For each candidate, include: flag name, type, age in days, oldest lastSeenAt, which signals fired, and suggested next action (e.g., 'run cleanup_flag', 'archive in Unleash first', 'check with feature owner'). (6) Do NOT call cleanup_flag automatically — the report is for the user to triage. (7) If get_flag_state returns no environments[] data for some flags, note that in the report rather than guessing."
   }
 }
