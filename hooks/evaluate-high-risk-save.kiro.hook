@@ -4,7 +4,7 @@
   "description": "On file save in a high-risk directory, asks Kiro to evaluate whether the change needs a feature flag and offer to create one. Disabled by default — enable after editing filePattern to match your team's high-risk paths.",
   "version": "1",
   "when": {
-    "type": "fileSave",
+    "type": "fileEdited",
     "filePattern": "src/payments/**/*.ts"
   },
   "then": {
