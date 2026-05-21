@@ -31,13 +31,13 @@ A flag is a cleanup candidate when **any** of these conditions hold (signals lis
 
 | Type | Default lifetime | Cleanup behavior |
 |---|---|---|
+| `operational` | 7 days | Audit aggressively — these are meant to be short-term |
 | `release` | 40 days | Audit for removal after the rollout stabilizes |
 | `experiment` | 40 days | Audit for removal after the experiment concludes |
-| `operational` | 7 days | Audit aggressively — these are meant to be short-term |
 | `kill-switch` | Permanent | **Skip** — no expected lifetime, meant to live indefinitely |
 | `permission` | Permanent | **Skip** — ties to user attributes, not a rollout |
 
-Only `kill-switch` and `permission` are treated as permanent by default. `operational` is **not** permanent despite its name — Unleash treats it as the shortest-lived type. If your team uses operational flags long-term, change the type to `kill-switch` or update the lifetime in the Unleash admin UI.
+Only `kill-switch` and `permission` are treated as permanent by default. If your team uses operational flags long-term, change the type to `kill-switch` or update the lifetime in the Unleash admin UI.
 
 ## Removal workflow
 
@@ -109,7 +109,7 @@ If your team tracks technical-debt removal, mention the flag name and merge SHA 
 
 ## Periodic audits
 
-Run a flag audit on a recurring cadence (the `flag-audit.kiro.hook` template in `hooks/` automates this). The audit should rely on data actually returned by `get_flag_state`:
+Run a flag audit on a recurring cadence (the `flag-audit.kiro.hook` template in `hooks/` automates this):
 
 1. **List flags** in the target project.
 2. **Fetch each flag's state** via `get_flag_state`.
@@ -120,8 +120,6 @@ Run a flag audit on a recurring cadence (the `flag-audit.kiro.hook` template in 
    - All `environments[].lastSeenAt` older than 30 days (no SDK is hitting it)
    - `age(createdAt) > expected_lifetime_for_type(type)` (overdue by Unleash's defaults)
 5. **Prioritize** by `stale === true` first, then by oldest `lastSeenAt`, then by `age - expected_lifetime`.
-
-This audit deliberately does **not** try to compute "days at 100% rollout" or weighted rollout percentages — the Admin API doesn't expose the strategy-change history needed for that calculation. The signals above are based on what `get_flag_state` actually returns.
 
 A weekly audit is reasonable for most teams. Run it more frequently during release-heavy periods.
 
