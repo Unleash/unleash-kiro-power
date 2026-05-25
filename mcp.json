@@ -8,7 +8,7 @@
         "UNLEASH_PAT": "${UNLEASH_PAT}",
         "UNLEASH_DEFAULT_PROJECT": "${UNLEASH_DEFAULT_PROJECT}"
       },
-      "autoApprove": ["get_flag_state", "detect_flag", "evaluate_change"],
+      "autoApprove": ["get_flag_state", "detect_flag", "evaluate_change", "list_projects", "list_flags"],
       "disabledTools": []
     }
   }

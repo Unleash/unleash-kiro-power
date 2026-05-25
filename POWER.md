@@ -15,6 +15,8 @@ keywords:
   - progressive delivery
   - featureops
   - unleash
+  - flag audit
+  - flag inventory
   # CUSTOMIZE: add domain-specific terms your team uses (e.g. "checkout flag", "billing rollout")
 ---
 
@@ -115,7 +117,7 @@ For tasks that span multiple workflows (e.g., "create a flag and plan the rollou
 
 # Tool reference
 
-The Unleash MCP server exposes nine tools.
+The Unleash MCP server exposes the following tools.
 
 | Tool | Description | When to use |
 |---|---|---|
@@ -123,13 +125,15 @@ The Unleash MCP server exposes nine tools.
 | `detect_flag` | Searches for existing flags that match a description to prevent duplicates. | Before creating new flags |
 | `create_flag` | Creates a new feature flag with proper naming, typing, and metadata. | When no suitable flag exists |
 | `wrap_change` | Generates framework-specific code to guard a feature behind a flag. | After creating a flag |
+| `list_projects` | Lists Unleash projects available to the configured token, with optional pagination. | Discovering available projects |
+| `list_flags` | Lists feature flags in a project (active by default; set archived=true for archived flags). | Auditing flag inventory; discovering existing flags before creating new ones |
 | `get_flag_state` | Returns the current state, strategies, and metadata for a flag. | Debugging, status checks |
 | `set_flag_rollout` | Configures rollout percentages and activation strategies. | Gradual releases |
 | `toggle_flag_environment` | Enables or disables a flag in a specific environment. | Testing, staged rollouts |
 | `remove_flag_strategy` | Deletes a rollout strategy from a flag. | Simplifying flag configuration |
 | `cleanup_flag` | Returns file locations and instructions for removing a flag after rollout. | After full rollout |
 
-`get_flag_state`, `detect_flag`, and `evaluate_change` are pre-approved (`autoApprove`) in `mcp.json` because they are read-only. Write operations like `create_flag`, `set_flag_rollout`, and `cleanup_flag` always require explicit user approval — keep it that way unless the user has a specific reason to lower the bar.
+The read-only tools — `get_flag_state`, `detect_flag`, `evaluate_change`, `list_projects`, and `list_flags` — are pre-approved (`autoApprove`) in `mcp.json` so the agent can use them without prompting. Write operations like `create_flag`, `set_flag_rollout`, and `cleanup_flag` always require explicit user approval — keep it that way unless the user has a specific reason to lower the bar.
 
 ---
 

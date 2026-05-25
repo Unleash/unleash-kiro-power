@@ -5,7 +5,7 @@
       "headers": {
         "Authorization": "Bearer ${UNLEASH_PAT}"
       },
-      "autoApprove": ["get_flag_state", "detect_flag", "evaluate_change"],
+      "autoApprove": ["get_flag_state", "detect_flag", "evaluate_change", "list_projects", "list_flags"],
       "disabledTools": []
     }
   }

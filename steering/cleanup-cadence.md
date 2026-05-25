@@ -111,15 +111,16 @@ If your team tracks technical-debt removal, mention the flag name and merge SHA 
 
 Run a flag audit on a recurring cadence (the `flag-audit.kiro.hook` template in `hooks/` automates this):
 
-1. **List flags** in the target project.
-2. **Fetch each flag's state** via `get_flag_state`.
-3. **Skip** flags where `type === 'kill-switch'` or `type === 'permission'` — these are permanent by design.
-4. **Surface** flags where any of these are true:
+1. **Enumerate active flags** with `list_flags` (default `archived=false`).
+2. **Enumerate archived flags** with a second `list_flags` call setting `archived=true`. Active and archived flags are disjoint result sets in Unleash; both calls are required for a complete inventory.
+3. **Fetch each flag's state** via `get_flag_state` for the metadata that the list view doesn't include (full environment data, last-seen-at per env, etc.).
+4. **Skip** flags where `type === 'kill-switch'` or `type === 'permission'` — these are permanent by design.
+5. **Surface** flags where any of these are true:
    - `stale === true` (Unleash already flagged it)
    - `archived === true` but code references may still exist (check with `cleanup_flag`)
    - All `environments[].lastSeenAt` older than 30 days (no SDK is hitting it)
    - `age(createdAt) > expected_lifetime_for_type(type)` (overdue by Unleash's defaults)
-5. **Prioritize** by `stale === true` first, then by oldest `lastSeenAt`, then by `age - expected_lifetime`.
+6. **Prioritize** by `stale === true` first, then archived, then by oldest `lastSeenAt`, then by `age - expected_lifetime`.
 
 A weekly audit is reasonable for most teams. Run it more frequently during release-heavy periods.
 

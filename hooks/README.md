@@ -9,7 +9,7 @@ Kiro hooks fire on IDE events (file save, file create, user trigger, scheduled) 
 | File | Trigger | What it does |
 |---|---|---|
 | `evaluate-high-risk-save.kiro.hook` | File save in a high-risk path | Asks Kiro to call `evaluate_change`, then offers `detect_flag` / `create_flag` / `wrap_change` if needed |
-| `flag-audit.kiro.hook` | Manual (user-triggered from Hooks panel) | Audits all flags, identifies cleanup candidates per the thresholds in `cleanup-cadence.md` |
+| `flag-audit.kiro.hook` | Manual (user-triggered from Hooks panel) | Uses `list_flags` (active and archived) to enumerate every flag in the project, then evaluates each against the cleanup signals in `cleanup-cadence.md` (`stale`, `archived`, `lastSeenAt`, age-vs-type) |
 
 ## Install
 
@@ -43,11 +43,12 @@ Reload Kiro (or use **Developer: Reload Window**) and confirm the hooks appear i
 
 | Field | Default | Change to |
 |---|---|---|
-| `then.prompt` thresholds | "14+ days at 100%" and "90+ days unmodified" | Match the thresholds in your customized `cleanup-cadence.md` |
+| `then.prompt` thresholds | `lastSeenAt` 30 days; age-vs-type lifetime (release/experiment 40d, operational 7d, kill-switch/permission permanent) | Match the thresholds in your customized `cleanup-cadence.md` |
 | `then.prompt` project | "default project" | Specify a non-default project ID if your audit should scope to one project only |
+| `then.prompt` skipped types | `kill-switch`, `permission` | Add or remove types your team treats as permanent |
 | `enabled` | `false` | `true` once the prompt matches your conventions |
 
-No credit-cost concern — this hook only fires when the user clicks it.
+No credit-cost concern — this hook only fires when the user clicks it. The hook makes two `list_flags` calls (active and archived) plus a `get_flag_state` call per surfaced flag.
 
 ## Removing hooks
 
