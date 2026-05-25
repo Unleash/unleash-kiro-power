@@ -94,8 +94,8 @@ Feature flags are temporary by design. See `cleanup-cadence.md` for the removal 
 
 ## Tools available from this Power
 
-The Unleash MCP server (configured in `mcp.json`) exposes nine tools:
+The Unleash MCP server (configured in `mcp.json`) exposes the following tools:
 
-`evaluate_change`, `detect_flag`, `create_flag`, `wrap_change`, `get_flag_state`, `set_flag_rollout`, `toggle_flag_environment`, `remove_flag_strategy`, `cleanup_flag`.
+`evaluate_change`, `detect_flag`, `create_flag`, `wrap_change`, `list_projects`, `list_flags`, `get_flag_state`, `set_flag_rollout`, `toggle_flag_environment`, `remove_flag_strategy`, `cleanup_flag`.
 
-Read-only tools (`get_flag_state`, `detect_flag`, `evaluate_change`) are pre-approved. Write tools require explicit user confirmation.
+Read-only tools (`get_flag_state`, `detect_flag`, `evaluate_change`, `list_projects`, `list_flags`) are pre-approved. Write tools require explicit user confirmation. Use `list_projects` and `list_flags` for inventory discovery before creating new flags — `list_flags` is also the primitive behind the flag-audit hook.
