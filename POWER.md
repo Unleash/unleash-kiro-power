@@ -49,6 +49,8 @@ If the user picks **remote**, copy the contents of `examples/mcp.remote.json` ov
 
 If the user picks **local** (default), keep `mcp.json` as-is and verify Node with `node --version` (needs 18+).
 
+The bundled `mcp.json` pins `@unleash/mcp@0.5.0`, the version whose tools this Power's steering files and hooks call. Don't change it to `@latest`: a new major version of the Unleash MCP server with a different set of tools is in development, and this Power hasn't been updated for it yet.
+
 ## Step 1: Verify prerequisites
 
 | Requirement | Mode | Verify with |
