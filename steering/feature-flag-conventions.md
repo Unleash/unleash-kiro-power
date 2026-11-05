@@ -19,7 +19,7 @@ These conventions govern how feature flags are named, created, and used in this 
 
 <!-- CUSTOMIZE: list the domains, file paths, or change patterns that should always trigger evaluation -->
 
-Before implementing changes that fall into any of these categories, call the Unleash MCP server's `evaluate_change` tool with a description of the change:
+Before implementing a change, check whether it falls into any of these categories:
 
 - Payment processing or billing logic
 - Authentication, authorization, or session handling
@@ -28,7 +28,7 @@ Before implementing changes that fall into any of these categories, call the Unl
 - Performance-sensitive paths (caching, rate limiting, batching)
 - Anything user-visible that changes existing behavior
 
-`evaluate_change` returns a recommendation. If it says yes, proceed to the detect-and-create steps below.
+If it does, it needs a flag: proceed to the detect-and-create steps below. If you're unsure, call the Unleash MCP server's `docs` tool for Unleash's guidance on when to flag a change. Don't use `evaluate` for this — it checks who gets an existing flag, not whether a change needs one.
 
 ## 2. Naming convention
 
@@ -52,7 +52,7 @@ Rules:
 
 <!-- CUSTOMIZE: adjust the expected lifetimes below to match your team's internal guidelines. The defaults shown are Unleash's out-of-the-box lifetimes (set per type in the Unleash admin UI under Configure → Feature flag types). -->
 
-Pick the type that matches the flag's purpose. The MCP server's `create_flag` tool validates against these five types.
+Pick the type that matches the flag's purpose. The MCP server's `manage_flag` tool accepts these five types, plus `sunset`.
 
 | Type | Purpose | Default expected lifetime |
 |---|---|---|
@@ -68,13 +68,13 @@ When in doubt, default to `release` for new features and `kill-switch` for exter
 
 ## 4. Prefer reuse over creation
 
-Always call `detect_flag` with a description of the new flag's intent before calling `create_flag`. If a suitable existing flag is returned, reuse it. Reuse reduces flag-sprawl and keeps related code paths consistent.
+Always call `search` (`kind: flags`) with key words from the new flag's intent before creating one. If it returns a suitable flag, reuse it. Reuse reduces flag-sprawl and keeps related code paths consistent.
 
-If no match is returned, proceed to `create_flag`.
+If nothing matches, create the flag with `manage_flag` (`action: define`). It starts off in every environment.
 
 ## 5. Wrap with the right SDK pattern
 
-After `create_flag` returns, call `wrap_change` with the file path and language context. The tool returns SDK-appropriate guard code. Apply it verbatim — do not hand-roll equivalent checks.
+After `manage_flag` creates the flag, write the guard code yourself. Find how the codebase already checks flags — the SDK client, a wrapper function, a hook — and use the same pattern. Call `docs` if you need SDK details.
 
 For a TypeScript Express endpoint, expect output like:
 
@@ -96,6 +96,6 @@ Feature flags are temporary by design. See `cleanup-cadence.md` for the removal 
 
 The Unleash MCP server (configured in `mcp.json`) exposes the following tools:
 
-`evaluate_change`, `detect_flag`, `create_flag`, `wrap_change`, `list_projects`, `list_flags`, `get_flag_state`, `set_flag_rollout`, `toggle_flag_environment`, `remove_flag_strategy`, `cleanup_flag`.
+`search`, `inspect`, `evaluate`, `audit`, `docs`, `manage_flag`, `release`, `kill_switch`, `experiment`, `configure`, `send_feedback`.
 
-Read-only tools (`get_flag_state`, `detect_flag`, `evaluate_change`, `list_projects`, `list_flags`) are pre-approved. Write tools require explicit user confirmation. Use `list_projects` and `list_flags` for inventory discovery before creating new flags — `list_flags` is also the primitive behind the flag-audit hook.
+Read-only tools (`search`, `inspect`, `evaluate`, `audit`, `docs`) are pre-approved. Write tools require explicit user confirmation. Use `search` for inventory discovery before creating new flags — it also drives the flag-audit hook.

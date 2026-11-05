@@ -30,7 +30,7 @@ The defaults work out of the box, but feature management conventions vary widely
 - **Kiro** (IDE or CLI), with MCP enabled in settings.
 - An **Unleash instance** (Cloud or self-hosted) with API access.
 - A **Personal Access Token** with permissions to create and manage flags.
-- For local transport: **Node.js 18+** on developer machines.
+- For local transport: **Node.js 24+** on developer machines.
 - For remote transport: the Unleash instance admin must enable **Admin settings → Remote MCP server**, and your identity provider must allow OAuth 2.0 Dynamic Client Registration.
 
 ### From this repository
@@ -55,9 +55,8 @@ Then in Kiro: **Powers panel → Add power from Local Path → select the cloned
 Both transports use `${VAR}` expansion. Set:
 
 ```bash
-export UNLEASH_BASE_URL=https://your-instance.getunleash.io/api
+export UNLEASH_BASE_URL=https://your-instance.getunleash.io
 export UNLEASH_PAT=your-personal-access-token
-export UNLEASH_DEFAULT_PROJECT=default
 ```
 
 Kiro requires explicit per-variable approval — click **Allow** on the popup when prompted.

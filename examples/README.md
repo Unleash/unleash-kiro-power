@@ -33,7 +33,7 @@ The remote endpoint authenticates via `Authorization: Bearer ${UNLEASH_PAT}`. Pe
 
 | | Local stdio (default) | Remote HTTP |
 |---|---|---|
-| Node.js 18+ required | ✅ | — |
+| Node.js 24+ required | ✅ | — |
 | Admin must enable a server-side toggle | — | ✅ |
 | OAuth DCR required | — | ✅ |
 | Works against any Unleash instance | ✅ | Only instances with remote MCP enabled |

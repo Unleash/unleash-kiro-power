@@ -60,11 +60,11 @@ All flags in this domain must start with `payments-`. Examples:
 
 For every change in this domain:
 
-1. **Evaluate first.** Call `evaluate_change` before writing implementation code. The tool will recommend a flag.
+1. **Evaluate first.** Check the change against this policy before writing implementation code. Changes in this domain need a flag.
 2. **Require a flag.** Do not implement payment changes without a flag, even for "small" or "obvious" changes. Past incidents have shown that small changes in this domain can have outsized impact.
 3. **Include a fallback path.** Every external provider call must have a fallback — either a legacy provider, a graceful failure message, or a queue-and-retry pattern. Hand to the user for review if no clear fallback exists.
 4. **Test the fallback.** Write at least one test that exercises the fallback path (flag disabled).
-5. **Default off in production.** Newly created payment flags must be disabled in production at creation time. Use `toggle_flag_environment` to enable in staging first.
+5. **Default off in production.** Newly created payment flags must be disabled in production. `manage_flag` creates flags off in every environment; use `release` to enable in staging first.
 
 ### Rollout overrides
 

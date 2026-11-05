@@ -15,12 +15,12 @@ Most feature flags are temporary by design. Stale flags accumulate technical deb
 
 ## When a flag is ready for cleanup
 
-<!-- CUSTOMIZE: adjust the no-activity threshold (lastSeenAt window) for your team's traffic patterns -->
+<!-- CUSTOMIZE: adjust the no-activity threshold (last-seen window) for your team's traffic patterns -->
 
 A flag is a cleanup candidate when **any** of these conditions hold (signals listed in order of confidence):
 
-1. **Unleash marked it `stale: true`.** This is the strongest signal — Unleash's own staleness logic decided it's overdue based on type and age.
-2. **No SDK has evaluated the flag in 30+ days** in any enabled environment (`environments[].lastSeenAt`). If clients aren't checking it, removing it from code won't change behavior.
+1. **Unleash marked it `stale` or `potentially_stale`.** This is the strongest signal — a person marked it overdue, or Unleash's own staleness logic did based on type and age.
+2. **No SDK has evaluated the flag in 30+ days** in any enabled environment (`inspect` shows when SDKs last saw it in each one). If clients aren't checking it, removing it from code won't change behavior.
 3. **Age exceeds the type's expected lifetime** (see the table below). A `release` flag older than 40 days, or an `operational` flag older than 7 days, is overdue by Unleash's defaults.
 4. **The feature has fully launched** and the legacy code path is no longer needed (user judgment, not metadata).
 5. **The experiment has concluded** and a winning variant has been picked.
@@ -45,14 +45,12 @@ When the user asks to clean up a flag, follow this sequence:
 
 ### 1. Get the full picture
 
-Call `cleanup_flag` with the flag name. The tool returns framework-specific guidance based on the language and conventions detected in the codebase. Expect it to include:
+Call `inspect` (`kind: flag`) for the flag's type, lifecycle stage and rollout state in every environment. Then search the codebase yourself. Build a list of:
 
-- Every file and (where determinable) line number where the flag is referenced — including indirect usages through wrappers.
-- The current rollout state across all environments.
+- Every file and line where the flag is referenced — including indirect usages through wrappers, hooks and config (see the patterns in step 3).
 - The "enabled" branch — the code path that becomes the default after removal.
-- A cleanup checklist tailored to the framework.
 
-Trust the tool's output over your own grep instincts. Real codebases rarely have raw `unleash.isEnabled('flag-name')` calls everywhere; the tool knows how to find the indirect references.
+Real codebases rarely have raw `unleash.isEnabled('flag-name')` calls everywhere. Find how this codebase reads flags first, then trace every caller of that wrapper.
 
 ### 2. Confirm the keep path
 
@@ -78,7 +76,7 @@ The shape of "remove the conditional" depends entirely on how the flag is used. 
 - **Test fixtures and mocks:** mock providers, fixture flag-state objects, `jest.mock('unleash-client')` setups. These often outlive the production code.
 - **Analytics and logging:** flag name as a tag, dimension, or log field. Search for the literal flag-name string, not just the SDK call.
 
-The `cleanup_flag` tool surfaces the language- and framework-appropriate patterns. Use its output as the source of truth. If it misses a pattern that exists in this codebase, surface that gap to the user — don't silently work around it.
+If you find a pattern you can't remove cleanly, show it to the user — don't silently work around it.
 
 After removing all references:
 
@@ -97,11 +95,13 @@ Run the test suite for the touched code paths. Pay special attention to:
 - Mock providers that listed the removed flag — these need updating.
 - Snapshot tests that captured the old conditional rendering — re-snapshot intentionally.
 
-### 5. Delete the flag from Unleash
+### 5. Complete and archive the flag in Unleash
 
-Only after the code change is merged and deployed to production, delete (or archive) the flag in Unleash. If the flag is deleted while production code still references it, every call to `isEnabled()` returns `false` — silently switching production to the fallback path. Sequence matters.
+When the code change is ready, call `manage_flag` with `action: complete` and the outcome (`kept`, with the kept value for an experiment, or `discarded`). This records the result and moves the flag to the cleanup stage; SDKs are not affected.
 
-For `kill-switch` flags, prefer **archive** over delete so the historical incident log is preserved.
+Only after the code change is merged and deployed to production, archive the flag with `manage_flag` (`action: archive`). If the flag is archived while production code still references it, every call to `isEnabled()` returns `false` — silently switching production to the fallback path. Sequence matters.
+
+The MCP server can't delete flags. Archiving keeps the flag's history, including the incident log of `kill-switch` flags.
 
 ### 6. Document the cleanup
 
@@ -111,22 +111,21 @@ If your team tracks technical-debt removal, mention the flag name and merge SHA 
 
 Run a flag audit on a recurring cadence (the `flag-audit.kiro.hook` template in `hooks/` automates this):
 
-1. **Enumerate active flags** with `list_flags` (default `archived=false`).
-2. **Enumerate archived flags** with a second `list_flags` call setting `archived=true`. Active and archived flags are disjoint result sets in Unleash; both calls are required for a complete inventory.
-3. **Fetch each flag's state** via `get_flag_state` for the metadata that the list view doesn't include (full environment data, last-seen-at per env, etc.).
-4. **Skip** flags where `type === 'kill-switch'` or `type === 'permission'` — these are permanent by design.
-5. **Surface** flags where any of these are true:
-   - `stale === true` (Unleash already flagged it)
-   - `archived === true` but code references may still exist (check with `cleanup_flag`)
-   - All `environments[].lastSeenAt` older than 30 days (no SDK is hitting it)
-   - `age(createdAt) > expected_lifetime_for_type(type)` (overdue by Unleash's defaults)
-6. **Prioritize** by `stale === true` first, then archived, then by oldest `lastSeenAt`, then by `age - expected_lifetime`.
+1. **Enumerate flags** with `search` (`kind: flags`, the project id). Archived flags only come back when `stages` lists `archived`, so pass every stage: `define`, `develop`, `production`, `cleanup`, `archived`. Page with `offset` and `limit` until you reach `total`.
+2. **Fetch each flag's details** via `inspect` (`kind: flag`) for what the list rows don't include, such as when SDKs last saw it in each environment.
+3. **Skip** flags of type `kill-switch` or `permission` — these are permanent by design.
+4. **Surface** flags where any of these are true:
+   - Staleness is `stale` or `potentially_stale` (a `search` with the `staleness` filter finds these directly)
+   - Lifecycle stage is `archived`, but code references may still exist (search the codebase)
+   - SDKs last saw it more than 30 days ago in every enabled environment (no SDK is hitting it)
+   - Its age exceeds the expected lifetime for its type (overdue by Unleash's defaults)
+5. **Prioritize** stale flags first, then archived, then by oldest last-seen time, then by how far past its expected lifetime.
 
 A weekly audit is reasonable for most teams. Run it more frequently during release-heavy periods.
 
 ## What not to clean up automatically
 
-Never auto-execute `cleanup_flag` followed by code removal without the user reviewing each step. Flag cleanup touches production code paths and can re-introduce bugs if the wrong branch is preserved. Always present the plan, get confirmation, then act.
+Never remove flag code, or complete or archive a flag, without the user reviewing each step. Flag cleanup touches production code paths and can re-introduce bugs if the wrong branch is preserved. Always present the plan, get confirmation, then act.
 
 ## Related
 
