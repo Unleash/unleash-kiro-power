@@ -12,7 +12,7 @@
 
 # Rollout guidance
 
-This file is loaded when the conversation involves rolling out feature flags. Use it to configure `set_flag_rollout` and `toggle_flag_environment` calls.
+This file is loaded when the conversation involves rolling out feature flags. Use it to configure `release` calls.
 
 ## Default rollout strategy
 
@@ -39,13 +39,13 @@ Pause the rollout immediately and re-evaluate if any of the following are observ
 - **User reports** of broken functionality through any inbound channel.
 - **Downstream system errors** spike (database, message queue, third-party API).
 
-To pause a rollout, call `set_flag_rollout` with `percentage: 0` for the affected environment. Do not delete the flag — pausing preserves the rollout history for the postmortem.
+To pause a rollout, call `release` with `flag.state: disabled` for the affected environment. `release` replaces the environment's audience, so pass the current targets from `inspect` to keep them for a restart. Do not archive the flag — pausing preserves the rollout history for the postmortem.
 
 ## Per-environment activation
 
 <!-- CUSTOMIZE: list the environments your team uses; rename or add as needed -->
 
-Use `toggle_flag_environment` to enable a flag in one environment at a time:
+Use `release` to enable a flag in one environment at a time:
 
 1. **`development`** — Enable as soon as the flag is created. Default-on for local testing.
 2. **`staging`** — Enable after integration tests pass against the new code path.
@@ -55,10 +55,10 @@ Never enable a flag in production before staging unless the user explicitly conf
 
 ## Targeting strategies
 
-`set_flag_rollout` supports targeting beyond simple percentage rollouts. Common patterns:
+`release` supports targeting beyond simple percentage rollouts. Each call takes a list of targets, each with an optional `rollout` percentage, constraints, segments and `stickiness`. Common patterns:
 
 - **Internal-first:** Target by user email domain (e.g., `@your-company.com`) or by a `userType=employee` context attribute. Use this before any external exposure.
-- **Beta users:** Target a named segment. Useful when you have a curated list of early-access customers.
+- **Beta users:** Target a named segment (create one with `configure`). Useful when you have a curated list of early-access customers.
 - **Geographic:** Target by region for regulatory or capacity reasons. Useful for staged regional rollouts.
 - **Sticky percentage:** Hash on `userId` so the same user sees consistent behavior across requests.
 
@@ -66,10 +66,12 @@ When configuring targeting, always include a sticky identifier so the user exper
 
 ## Tools to use
 
-- `set_flag_rollout` — configure percentages, strategies, and targeting.
-- `toggle_flag_environment` — enable/disable in a specific environment.
-- `get_flag_state` — check the current rollout state before changing it.
-- `remove_flag_strategy` — clean up unused strategies once the rollout simplifies.
+- `release` — enable or disable a flag in an environment and set its percentages and targeting. Each call replaces the environment's targets; to drop unused ones, send the trimmed list.
+- `inspect` — check the current rollout state before changing it.
+- `kill_switch` — flip a `kill-switch` flag on or off.
+- `experiment` — run an A/B test instead of a plain rollout.
+- `configure` — create segments and release templates that rollouts share.
+- `audit` — see who changed a rollout and when.
 
 ## Related
 

@@ -42,14 +42,14 @@ The Unleash MCP server is available in two modes. Ask the user which one they wa
 
 | Mode | When to use | Setup cost |
 |---|---|---|
-| **Local stdio** (default) | Individual developer with Node.js 18+ and permission to run `npx`. Works against any Unleash instance. | Set 3 env vars, no admin action needed. |
+| **Local stdio** (default) | Individual developer with Node.js 24+ and permission to run `npx`. Works against any Unleash instance. | Set 2 env vars, no admin action needed. |
 | **Remote HTTP** | Org disallows local MCP processes, or you prefer Unleash-hosted. Requires admin to enable remote MCP on the instance and the org to permit OAuth 2.0 DCR. | One env var, but admin must toggle "Remote MCP server" in Admin settings first. |
 
 If the user picks **remote**, copy the contents of `examples/mcp.remote.json` over `mcp.json` and replace `https://your-instance.getunleash.io` with their instance URL. Verify reachability with `curl -I https://<instance>/api/admin/mcp` — a `401 Unauthorized` is expected (proves the endpoint exists; auth happens in the next step).
 
-If the user picks **local** (default), keep `mcp.json` as-is and verify Node with `node --version` (needs 18+).
+If the user picks **local** (default), keep `mcp.json` as-is and verify Node with `node --version` (needs 24+).
 
-The bundled `mcp.json` pins `@unleash/mcp@0.5.0`, the version whose tools this Power's steering files and hooks call. Don't change it to `@latest`: a new major version of the Unleash MCP server with a different set of tools is in development, and this Power hasn't been updated for it yet.
+The bundled `mcp.json` runs `@unleash/mcp@latest`. This Power's steering files and hooks call the tools of the Unleash MCP server v2 (0.6.0 and later).
 
 ## Step 1: Verify prerequisites
 
@@ -57,7 +57,7 @@ The bundled `mcp.json` pins `@unleash/mcp@0.5.0`, the version whose tools this P
 |---|---|---|
 | Unleash instance (Cloud or self-hosted) | both | `curl -I ${UNLEASH_BASE_URL}` returns 200 or 401 |
 | Personal Access Token with flag-management permissions | both | Manage in Unleash Admin → API access → Personal access tokens |
-| Node.js 18+ | local only | `node --version` |
+| Node.js 24+ | local only | `node --version` |
 | Remote MCP enabled on the Unleash instance | remote only | Unleash Admin → Admin settings → Remote MCP server is **Enabled** |
 | OAuth 2.0 Dynamic Client Registration allowed | remote only | Confirm with your org's identity provider |
 
@@ -68,9 +68,8 @@ Both modes use `${VAR}` expansion. Create a credentials file and source it from 
 ```bash
 mkdir -p ~/.unleash
 cat > ~/.unleash/mcp.env << 'EOF'
-UNLEASH_BASE_URL=https://your-instance.getunleash.io/api
+UNLEASH_BASE_URL=https://your-instance.getunleash.io
 UNLEASH_PAT=your-personal-access-token
-UNLEASH_DEFAULT_PROJECT=default
 EOF
 chmod 600 ~/.unleash/mcp.env
 ```
@@ -80,13 +79,13 @@ Add to `~/.zshrc` or `~/.bashrc`:
 ```bash
 if [ -f ~/.unleash/mcp.env ]; then
   source ~/.unleash/mcp.env
-  export UNLEASH_BASE_URL UNLEASH_PAT UNLEASH_DEFAULT_PROJECT
+  export UNLEASH_BASE_URL UNLEASH_PAT
 fi
 ```
 
-Restart the shell, then restart Kiro. When Kiro shows the "unapproved environment variables" popup, click **Allow** for `UNLEASH_BASE_URL`, `UNLEASH_PAT`, and `UNLEASH_DEFAULT_PROJECT`. Kiro only expands variables that have been explicitly approved.
+Restart the shell, then restart Kiro. When Kiro shows the "unapproved environment variables" popup, click **Allow** for `UNLEASH_BASE_URL` and `UNLEASH_PAT`. Kiro only expands variables that have been explicitly approved.
 
-**Remote mode only needs `UNLEASH_PAT`** (the URL is in `mcp.json` directly), but setting all three is harmless and lets the user switch transports later without re-doing the env work.
+**Remote mode only needs `UNLEASH_PAT`** (the URL is in `mcp.json` directly), but setting both is harmless and lets the user switch transports later without re-doing the env work.
 
 ## Step 3: Install hook templates (optional)
 
@@ -123,19 +122,21 @@ The Unleash MCP server exposes the following tools.
 
 | Tool | Description | When to use |
 |---|---|---|
-| `evaluate_change` | Analyzes a code change and determines whether it should be behind a feature flag. | Before implementing risky changes |
-| `detect_flag` | Searches for existing flags that match a description to prevent duplicates. | Before creating new flags |
-| `create_flag` | Creates a new feature flag with proper naming, typing, and metadata. | When no suitable flag exists |
-| `wrap_change` | Generates framework-specific code to guard a feature behind a flag. | After creating a flag |
-| `list_projects` | Lists Unleash projects available to the configured token, with optional pagination. | Discovering available projects |
-| `list_flags` | Lists feature flags in a project (active by default; set archived=true for archived flags). | Auditing flag inventory; discovering existing flags before creating new ones |
-| `get_flag_state` | Returns the current state, strategies, and metadata for a flag. | Debugging, status checks |
-| `set_flag_rollout` | Configures rollout percentages and activation strategies. | Gradual releases |
-| `toggle_flag_environment` | Enables or disables a flag in a specific environment. | Testing, staged rollouts |
-| `remove_flag_strategy` | Deletes a rollout strategy from a flag. | Simplifying flag configuration |
-| `cleanup_flag` | Returns file locations and instructions for removing a flag after rollout. | After full rollout |
+| `search` | Finds projects, environments, flags, segments, context fields, tags, release templates and event types. Filters flags by tag, lifecycle stage, staleness, creator or creation date. | Discovering projects; finding an existing flag before creating one; auditing flag inventory |
+| `inspect` | Shows a project, flag, context field or segment in full: who gets a flag in each environment and when SDKs last saw it there. | Debugging, status checks, before changing a rollout |
+| `evaluate` | Tells whether a user or context gets a flag in an environment, with which value, and what blocks it. | Answering "does user X get flag Y?" |
+| `audit` | Reads what changed in Unleash, who changed it and when, over at most 31 days. | Incident review, tracing a rollout change |
+| `docs` | Answers feature flag and Unleash questions from the current Unleash docs. | Practice and SDK questions |
+| `manage_flag` | Creates a flag (off in every environment) or changes its type, description, tags and links; marks it completed or stale; archives or revives it. | Creating flags; recording the end of a rollout; archiving |
+| `release` | Turns a flag on or off in an environment, for everyone, a percentage, audiences, segments, or a release template. Creates a missing flag. | Gradual releases, per-environment activation, pausing |
+| `kill_switch` | Adds a permanent kill switch or flips one in an environment. | Emergency shutdown of an integration or high-risk path |
+| `experiment` | Runs or stops an A/B test across values such as control and treatment. | Experiments |
+| `configure` | Creates or changes projects, release templates, context fields, segments and tag types. | Shared setup that many flags use |
+| `send_feedback` | Reports to Unleash where the MCP server fell short. Asks the user for consent itself. | When a tool fails or can't do what the user asked |
 
-The read-only tools — `get_flag_state`, `detect_flag`, `evaluate_change`, `list_projects`, and `list_flags` — are pre-approved (`autoApprove`) in `mcp.json` so the agent can use them without prompting. Write operations like `create_flag`, `set_flag_rollout`, and `cleanup_flag` always require explicit user approval — keep it that way unless the user has a specific reason to lower the bar.
+The read-only tools — `search`, `inspect`, `evaluate`, `audit`, and `docs` — are pre-approved (`autoApprove`) in `mcp.json` so the agent can use them without prompting. Write tools — `manage_flag`, `release`, `kill_switch`, `experiment`, and `configure` — always require explicit user approval. Keep it that way unless the user has a specific reason to lower the bar.
+
+The server has no tool to judge a code change's risk, write SDK guard code, or find a flag's references in code. The agent does these itself, following the steering files. Note that `evaluate` checks who gets a flag; it does not judge whether a change needs one.
 
 ---
 
