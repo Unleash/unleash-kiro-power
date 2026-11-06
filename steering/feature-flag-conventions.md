@@ -2,10 +2,10 @@
 
 ## Customize this file for your team
 
-- **Naming convention:** default is `{domain}-{feature}-{variant}` (e.g. `checkout-stripe-integration`). Replace with your team's pattern.
+- **Naming convention:** default is `{domain}-{feature}` (e.g. `checkout-stripe-integration`), with kill switches named `disable-{domain}-{feature}`. Replace with your team's pattern.
 - **Flag types in scope:** default lists `release`, `experiment`, `operational`, `kill-switch`, `permission`. Trim or extend.
-- **What counts as "high-risk":** default mentions payments, authentication, data migrations, external integrations. Add the categories that matter for your business.
-- **Mandatory vs. optional evaluation:** default is "evaluate before implementing high-risk changes". Some teams require flags for *all* user-facing changes — adjust to your bar.
+- **When a flag is required:** default is the tier table below (Critical and High require a flag, Medium asks, Low skips). Some teams require flags for *all* user-facing changes — move rows between tiers to match your bar.
+- **Change-size bands and exemptions:** default bands are under 20, 20 to 100, and over 100 changed lines; tests and docs are exempt. Tune both.
 
 When Kiro reads this file, it should apply the rules as written. The bullets above are for the humans editing the file.
 
@@ -15,26 +15,30 @@ When Kiro reads this file, it should apply the rules as written. The bullets abo
 
 These conventions govern how feature flags are named, created, and used in this codebase. Apply them whenever code changes might benefit from a feature flag.
 
-## 1. Evaluate risk before implementing
+## 1. When to require a feature flag
 
-<!-- CUSTOMIZE: list the domains, file paths, or change patterns that should always trigger evaluation -->
+<!-- CUSTOMIZE: move change types between tiers, or change the size bands and exemptions, to match your team's bar -->
 
-Before implementing a change, check whether it falls into any of these categories:
+A change takes the tier of the riskiest thing it does. Judge what the change does, not the words in it: fixing a typo in a login error message is Low, not Critical.
 
-- Payment processing or billing logic
-- Authentication, authorization, or session handling
-- Data migrations or schema changes
-- External integrations (third-party APIs, webhooks, message queues)
-- Performance-sensitive paths (caching, rate limiting, batching)
-- Anything user-visible that changes existing behavior
+| Tier | Changes | Flag |
+|---|---|---|
+| Critical | Authentication, authorization, sessions; payments, billing; security-sensitive code (encryption, hashing, input sanitization, CSRF/XSS protection); database schema changes, migrations, destructive queries | Required |
+| High | New user-facing features; user-visible changes to existing behavior; new or changed API endpoints and contracts; calls to external services, webhooks, message queues; large changes | Required |
+| Medium | New async work or background jobs; changes to shared state; performance-sensitive paths (caching, rate limiting, batching); medium changes | Ask the user, recommending a flag when the change reaches production traffic |
+| Low | Bug fixes and refactors that keep behavior; small changes | Not needed |
 
-If it does, it needs a flag: proceed to the detect-and-create steps below. If you're unsure, call the Unleash MCP server's `docs` tool for Unleash's guidance on when to flag a change. Don't use `evaluate` for this — it checks who gets an existing flag, not whether a change needs one.
+- **Change size:** small is under 20 changed lines, medium 20 to 100, large over 100. The more lines a change touches, the more likely it hides a bug that only shows in production, where a flag can turn it off without a redeploy.
+- **Exempt:** test code and documentation, such as `*.test.*`, `*_test.go` or `docs/`: they never run in production. Config files are exempt unless they change runtime behavior in a Medium or higher category, such as a rate limit or a cache setting.
+- A change in a domain listed in `high-risk-domains.md` always requires a flag, whatever its tier.
+
+To apply this table to a change, follow `evaluate-change.md`. Don't use the MCP server's `evaluate` tool for this — it checks who gets an existing flag, not whether a change needs one.
 
 ## 2. Naming convention
 
 <!-- CUSTOMIZE: replace the pattern below with your team's flag naming convention -->
 
-Use the format **`{domain}-{feature}-{variant}`** for all new flags. Examples:
+Use the format **`{domain}-{feature}`** for all new flags. Examples:
 
 - `checkout-stripe-integration`
 - `auth-sso-google`
@@ -45,8 +49,10 @@ Rules:
 
 - Lowercase only, kebab-case (no underscores, no camelCase).
 - `domain` matches the top-level directory in `src/` where the change lives.
-- `feature` is a short verbal phrase describing what the flag controls.
-- `variant` is the rollout strategy or experiment arm (omit for simple release flags).
+- `feature` is a short phrase describing what the flag controls.
+- An experiment is one flag whose values are the arms, so arms don't go in the name.
+- **Kill switches** are named after what they turn off: `disable-{domain}-{feature}`, such as `disable-payments-stripe`.
+- **Unleash's own rule wins:** a project can enforce a naming pattern. Call `inspect` (`kind: project`) and follow its pattern when it has one.
 
 ## 3. Flag types
 
@@ -64,33 +70,21 @@ Pick the type that matches the flag's purpose. The MCP server's `manage_flag` to
 
 Lifetimes come from Unleash's product defaults and are used by Unleash to mark flags "potentially stale" once they exceed the threshold for their type. Teams customize these per project in the Unleash admin UI.
 
-When in doubt, default to `release` for new features and `kill-switch` for external-dependency integrations.
+When in doubt, use `release`. A change that calls an external dependency also gets a `kill-switch`, if the call has none yet, so the dependency can be cut off on its own.
 
 ## 4. Prefer reuse over creation
 
-Always call `search` (`kind: flags`) with key words from the new flag's intent before creating one. If it returns a suitable flag, reuse it. Reuse reduces flag-sprawl and keeps related code paths consistent.
+Look for an existing flag before creating one, following `find-existing-flag.md`. Reuse cuts flag sprawl and keeps related code paths consistent.
 
-If nothing matches, create the flag with `manage_flag` (`action: define`). It starts off in every environment.
+`release`, `kill_switch` and `experiment` create a flag that doesn't exist yet, with its type's defaults and no description. Create a new flag with `manage_flag` (`action: define`) first, so it gets the type from this file and a description. It starts off in every environment.
 
-## 5. Wrap with the right SDK pattern
+## 5. Wrap the change
 
-After `manage_flag` creates the flag, write the guard code yourself. Find how the codebase already checks flags — the SDK client, a wrapper function, a hook — and use the same pattern. Call `docs` if you need SDK details.
+Write the guard code yourself, following `wrap-change.md`: the check runs on every request, matches how the codebase already checks flags, and has a real off path.
 
-For a TypeScript Express endpoint, expect output like:
+## 6. Remove after rollout
 
-```typescript
-if (unleash.isEnabled('checkout-stripe-integration', context)) {
-  return stripeService.processPayment(request);
-} else {
-  return legacyPaymentService.process(request);
-}
-```
-
-Keep the fallback branch realistic — if there is no legacy path, the fallback should be a clear failure message, not a silent no-op.
-
-## 6. Clean up after rollout
-
-Feature flags are temporary by design. See `cleanup-cadence.md` for the removal workflow.
+Feature flags are temporary by design. See `remove-flag.md` for taking a flag out of the code, and `audit-cadence.md` for when a flag is due.
 
 ## Tools available from this Power
 
