@@ -25,9 +25,9 @@ keywords:
 This Power ships as a template. The defaults work out of the box, but feature management conventions vary widely across teams and industries. Edit the following before rolling it out broadly:
 
 - **High-risk domains** in `steering/high-risk-domains.md` — replace the payments example with your own domains (auth, billing, data migrations, public API, etc.).
-- **Naming convention** in `steering/feature-flag-conventions.md` — the default is `{domain}-{feature}-{variant}`; swap for whatever pattern your team uses.
+- **Naming convention and when to flag** in `steering/feature-flag-conventions.md` — the default name is `{domain}-{feature}` (kill switches `disable-{domain}-{feature}`), and a tier table decides which changes need a flag; swap in your team's pattern and bar.
 - **Rollout milestones** in `steering/rollout-guidance.md` — default is 10% → 50% → 100% with 24-hour holds; adjust for your release cadence.
-- **Cleanup cadence** in `steering/cleanup-cadence.md` — default flags-this-stale threshold is 14 days at 100%; adjust for your tolerance.
+- **Audit cadence** in `steering/audit-cadence.md` — default no-activity window is 30 days, and lifetimes follow Unleash's per-type defaults; adjust for your tolerance.
 - **Hook file patterns** in `hooks/*.kiro.hook` — defaults target `src/payments/**/*.ts`; change to match your highest-risk directories.
 
 Every customizable spot in the steering files is marked with an HTML comment: `<!-- CUSTOMIZE: ... -->`. Search for `CUSTOMIZE` to find them all.
@@ -109,12 +109,17 @@ Kiro should load steering files contextually based on the task at hand. Map work
 
 | User intent | Load |
 |---|---|
-| Setting up feature flags, deciding when to flag a change, naming a new flag | `steering/feature-flag-conventions.md` |
-| Working in a high-risk directory (payments, auth, data migrations, external integrations) | `steering/high-risk-domains.md` |
+| Naming a new flag, picking its type, the team's bar for when a change needs a flag | `steering/feature-flag-conventions.md` |
+| Deciding whether a change needs a flag, before implementing it | `steering/evaluate-change.md` |
+| Before creating any flag: looking for one that already covers the feature | `steering/find-existing-flag.md` |
+| Putting code behind a flag | `steering/wrap-change.md` |
 | Planning a gradual rollout, configuring percentages, setting halt conditions | `steering/rollout-guidance.md` |
-| Removing a feature flag, cleaning up after a successful rollout, auditing stale flags | `steering/cleanup-cadence.md` |
+| Taking a flag out of the code | `steering/remove-flag.md` |
+| Finding flags due for removal, auditing stale flags | `steering/audit-cadence.md` |
+| Working in a high-risk directory (payments, auth, data migrations, external integrations) | `steering/high-risk-domains.md` |
+| Locating flag checks in code, or telling what a check covers | `steering/flag-usage-patterns.md` |
 
-For tasks that span multiple workflows (e.g., "create a flag and plan the rollout"), load both relevant files.
+For tasks that span multiple workflows (e.g., "create a flag and plan the rollout"), load each relevant file in turn.
 
 # Tool reference
 
@@ -136,7 +141,7 @@ The Unleash MCP server exposes the following tools.
 
 The read-only tools — `search`, `inspect`, `evaluate`, `audit`, and `docs` — are pre-approved (`autoApprove`) in `mcp.json` so the agent can use them without prompting. Write tools — `manage_flag`, `release`, `kill_switch`, `experiment`, and `configure` — always require explicit user approval. Keep it that way unless the user has a specific reason to lower the bar.
 
-The server has no tool to judge a code change's risk, write SDK guard code, or find a flag's references in code. The agent does these itself, following the steering files. Note that `evaluate` checks who gets a flag; it does not judge whether a change needs one.
+The server has no tool to judge a code change's risk, write SDK guard code, or find a flag's references in code. The agent does these itself, following `steering/evaluate-change.md`, `steering/wrap-change.md` and `steering/remove-flag.md`. Note that `evaluate` checks who gets a flag; it does not judge whether a change needs one.
 
 ---
 
