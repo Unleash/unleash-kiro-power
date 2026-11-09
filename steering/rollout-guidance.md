@@ -75,6 +75,7 @@ When configuring targeting, always include a sticky identifier so the user exper
 
 ## Related
 
-- For naming and creation: `feature-flag-conventions.md`
-- For cleanup after rollout reaches 100%: `cleanup-cadence.md`
+- For naming: `feature-flag-conventions.md`
+- For creating the flag: `find-existing-flag.md`
+- For removing the flag after rollout reaches 100%: `remove-flag.md`
 - For domain-specific overrides: `high-risk-domains.md`

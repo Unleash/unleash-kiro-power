@@ -9,6 +9,6 @@
   },
   "then": {
     "type": "askAgent",
-    "prompt": "The file $FILE_PATH was just saved with changes in a high-risk domain. Judge whether these changes should be behind a feature flag, using the rules in steering/feature-flag-conventions.md and steering/high-risk-domains.md. If the answer is yes: (1) Call the Unleash MCP server's search tool (kind: flags) to check for an existing matching flag before suggesting a new one. (2) If a new flag is needed, propose a name following the team's naming convention from steering/feature-flag-conventions.md and steering/high-risk-domains.md. (3) Offer to create it with manage_flag (action: define) and to write the guard code, using the flag-checking pattern this codebase already uses. Do not auto-create — wait for user confirmation."
+    "prompt": "The file $FILE_PATH was just saved with changes in a high-risk domain. Decide whether these changes need a feature flag by following steering/evaluate-change.md and steering/high-risk-domains.md. If they do: (1) Look for an existing flag before suggesting a new one, following steering/find-existing-flag.md. (2) If a new flag is needed, propose a name and type following steering/feature-flag-conventions.md and steering/high-risk-domains.md. (3) Offer to create it with manage_flag (action: define) and to write the guard code following steering/wrap-change.md. Do not create anything in Unleash without the user's confirmation."
   }
 }

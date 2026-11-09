@@ -14,9 +14,14 @@ The defaults work out of the box, but feature management conventions vary widely
 | `mcp.json` | Default MCP server config — local stdio transport via `npx`. |
 | `examples/mcp.remote.json` | Alternative MCP config — remote HTTP transport for Unleash-hosted MCP. Swap into `mcp.json` if your org disallows local servers. |
 | `examples/README.md` | When and how to swap to the remote transport. |
-| `steering/feature-flag-conventions.md` | Universal naming, types, and lifecycle rules. |
+| `steering/feature-flag-conventions.md` | Naming, types, and the tier table for when a change needs a flag. |
+| `steering/evaluate-change.md` | How to decide whether a change needs a flag. |
+| `steering/find-existing-flag.md` | How to find an existing flag before creating one. |
+| `steering/wrap-change.md` | How to put code behind a flag so toggling it works at runtime. |
+| `steering/flag-usage-patterns.md` | How flag checks look in code and what each one covers. |
 | `steering/rollout-guidance.md` | Default rollout milestones, hold durations, halt conditions. |
-| `steering/cleanup-cadence.md` | Thresholds and workflow for removing stale flags. |
+| `steering/remove-flag.md` | How to take a flag out of the code and retire it in Unleash. |
+| `steering/audit-cadence.md` | When a flag is due for removal, and how to audit for such flags. |
 | `steering/high-risk-domains.md` | Worked example (payments) + template for adding your own domains. |
 | `hooks/evaluate-high-risk-save.kiro.hook` | File-save hook that evaluates risky changes. Ships disabled. |
 | `hooks/flag-audit.kiro.hook` | Manual-trigger flag audit. Ships disabled. |
@@ -66,9 +71,9 @@ Kiro requires explicit per-variable approval — click **Allow** on the popup wh
 This Power ships as a template. Edit these files to match your team's conventions:
 
 1. **`steering/high-risk-domains.md`** — the file you'll edit most. Replace the payments example with your team's actual high-risk areas.
-2. **`steering/feature-flag-conventions.md`** — naming convention, flag types in scope, what counts as "high-risk".
+2. **`steering/feature-flag-conventions.md`** — naming convention, flag types in scope, the tier table for when a change needs a flag.
 3. **`steering/rollout-guidance.md`** — default milestones, hold durations, halt thresholds.
-4. **`steering/cleanup-cadence.md`** — stale-flag thresholds.
+4. **`steering/audit-cadence.md`** — stale-flag thresholds.
 5. **`hooks/evaluate-high-risk-save.kiro.hook`** — `filePattern` should match your high-risk directories.
 6. **`POWER.md` frontmatter** — add domain-specific keywords so the Power activates for your team's vocabulary.
 

@@ -16,8 +16,8 @@ Decide which directories or modules in your codebase carry enough release risk t
 Then, for each domain, decide:
 
 1. The **directory glob** that scopes the policy (e.g., `src/payments/**/*.ts`).
-2. The **default flag type** (often `kill-switch` for external dependencies, `release` for internal logic).
-3. The **naming prefix** that flags in this domain must use (e.g., `payments-*`).
+2. The **default flag type** (often `release`, plus a `kill-switch` for each external dependency).
+3. The **naming prefix** that flags in this domain must use (e.g., `payments-*`, and `disable-payments-*` for kill switches).
 4. Whether **all changes** require a flag or only certain change types (new endpoints, behavior changes, etc.).
 
 Duplicate the worked example below for each domain you want to protect.
@@ -42,29 +42,30 @@ All changes that touch files matching:
 
 ### Default flag type
 
-- **`kill-switch`** for any change that calls an external payment provider (Stripe, PayPal, Adyen, etc.).
-- **`release`** for internal payment logic that doesn't cross a network boundary.
+- **`release`** for every change in this domain.
+- A change that calls an external payment provider (Stripe, PayPal, Adyen, etc.) also gets a **`kill-switch`** for that provider, if it has none.
 
-The `kill-switch` choice exists because external dependencies can fail at any time, and the ability to disable the integration in seconds is more valuable than a gradual rollout strategy.
+The extra `kill-switch` exists because external dependencies can fail at any time, and the ability to cut off one provider in seconds is worth more than a gradual rollout. See `wrap-change.md` for how a kill switch's check reads.
 
 ### Naming
 
-All flags in this domain must start with `payments-`. Examples:
+All flags in this domain must start with `payments-`; kill switches start with `disable-payments-`. Examples:
 
 - `payments-stripe-integration`
 - `payments-paypal-checkout`
 - `payments-refund-v2`
 - `payments-fraud-check`
+- `disable-payments-stripe` (kill switch)
 
 ### Required actions
 
 For every change in this domain:
 
-1. **Evaluate first.** Check the change against this policy before writing implementation code. Changes in this domain need a flag.
+1. **Evaluate first,** following `evaluate-change.md`, before writing implementation code. Changes in this domain need a flag.
 2. **Require a flag.** Do not implement payment changes without a flag, even for "small" or "obvious" changes. Past incidents have shown that small changes in this domain can have outsized impact.
 3. **Include a fallback path.** Every external provider call must have a fallback — either a legacy provider, a graceful failure message, or a queue-and-retry pattern. Hand to the user for review if no clear fallback exists.
 4. **Test the fallback.** Write at least one test that exercises the fallback path (flag disabled).
-5. **Default off in production.** Newly created payment flags must be disabled in production. `manage_flag` creates flags off in every environment; use `release` to enable in staging first.
+5. **Keep the release flag off in production.** `manage_flag` creates flags off in every environment; use `release` to enable in staging first.
 
 ### Rollout overrides
 
@@ -107,11 +108,11 @@ If your team handles user authentication or session data, add an "auth" domain n
 ### Default flag type
 
 - `release` for new auth methods (SSO, passkeys, MFA enrollment).
-- `kill-switch` for identity provider integrations (Auth0, Okta, Cognito).
+- A change that calls an identity provider (Auth0, Okta, Cognito) also gets a `kill-switch` for that provider, if it has none.
 
 ### Naming
 
-All flags in this domain start with `auth-`. Examples: `auth-sso-google`, `auth-mfa-webauthn`, `auth-session-refresh-v2`.
+All flags in this domain start with `auth-`; kill switches start with `disable-auth-`. Examples: `auth-sso-google`, `auth-mfa-webauthn`, `auth-session-refresh-v2`, `disable-auth-okta`.
 
 ### Required actions
 
@@ -126,5 +127,6 @@ All flags in this domain start with `auth-`. Examples: `auth-sso-google`, `auth-
 ## Related
 
 - For naming and types: `feature-flag-conventions.md`
+- For evaluating, reusing and wrapping: `evaluate-change.md`, `find-existing-flag.md`, `wrap-change.md`
 - For rollout milestones: `rollout-guidance.md` (this file overrides for high-risk domains)
 - For automating evaluation on save: `hooks/evaluate-high-risk-save.kiro.hook`
